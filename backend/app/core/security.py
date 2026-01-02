@@ -4,8 +4,8 @@ from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from database.database import get_db
-from models.users import User
+from app.database.database import get_db
+from app.models.users import User
 import hashlib
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

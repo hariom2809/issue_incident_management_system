@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from database.database import engine, Base
-from models import *
-from routes import auth, issues, audit
+from app.database.database import engine, Base
+from app.models import *
+from app.routes import auth, issues, audit
 
 app = FastAPI(title="Issue & Incident Management System")
 app.include_router(auth.router)

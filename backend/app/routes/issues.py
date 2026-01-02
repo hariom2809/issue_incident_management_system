@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database.database import get_db
-from models.issues import Issue
-from models.users import User
-from core.audit import log_action
-from core.permissions import can_update_issue
+from app.database.database import get_db
+from app.models.issues import Issue
+from app.models.users import User
+from app.core.audit import log_action
+from app.core.permissions import can_update_issue
 
 router = APIRouter(prefix="/issues", tags=["Issues"])
 
