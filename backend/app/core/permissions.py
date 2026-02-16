@@ -1,10 +1,15 @@
 from fastapi import HTTPException
 
 def can_update_issue(user, issue):
-    if user.role == "admin":
+    user_roles = [ur.role.name for ur in user.roles]
+
+    if "admin" in user_roles:
         return True
-    if user.role == "engineer" and issue.assigned_to == user.id:
+
+    if "engineer" in user_roles and issue.assigned_to_id == user.id:
         return True
-    if user.role == "reporter" and issue.created_by == user.id:
+
+    if "reporter" in user_roles and issue.created_by_id == user.id:
         return True
+
     return False

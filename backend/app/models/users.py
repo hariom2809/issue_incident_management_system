@@ -10,6 +10,6 @@ class User(Base):
     name = Column(String(100), nullable=False)
     email = Column(String(150), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = relationship("UserRole", backref= "users")
+    roles = relationship("UserRole", backref="user")
     
     created_at = Column(DateTime, default=datetime.utcnow)

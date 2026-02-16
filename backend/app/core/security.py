@@ -14,7 +14,7 @@ SECRET_KEY = "supersecretkey"   # later move to env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 # ---------------- PASSWORD ---------------- #
 

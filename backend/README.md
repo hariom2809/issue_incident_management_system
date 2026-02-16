@@ -12,6 +12,6 @@ setup:
 
     3. Install the requirements
         pip install -r requirements.txt
-        
+
     4. Run the application
         python -m uvicorn app.main:app --reload
