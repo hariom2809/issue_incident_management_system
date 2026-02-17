@@ -5,6 +5,9 @@ from app.database.database import get_db
 from app.models.users import User
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.auth import RegisterRequest
+from app.core.permissions import get_user_permissions
+from sqlalchemy.orm import joinedload
+from app.models.rbac import UserRole, Role, RolePermission
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -27,9 +30,26 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 
 @router.post("/login", summary="Login and get access token")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == form_data.username).first()
+    user = (
+        db.query(User)
+        .options(
+            joinedload(User.user_roles)
+            .joinedload(UserRole.role)
+            .joinedload(Role.role_permissions)
+            .joinedload(RolePermission.permission)
+        )
+        .filter(User.email == form_data.username)
+        .first()
+    )
+
     if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(401, "Invalid credentials")
     
-    token = create_access_token({"user_id": user.id})
+    permissions = get_user_permissions(user)
+
+    token = create_access_token({
+        "user_id": user.id,
+        "permissions": permissions
+    })
+
     return {"access_token": token, "token_type": "bearer"}
