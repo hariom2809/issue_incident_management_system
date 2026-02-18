@@ -1,9 +1,11 @@
+from app.models.rbac import UserRole, Role, RolePermission, Permission
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.models.users import User
 import hashlib
@@ -31,6 +33,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+
 def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
@@ -44,7 +47,6 @@ def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: int = payload.get("user_id")
-        permissions = payload.get("permissions", [])
 
         if user_id is None:
             raise credentials_exception
@@ -52,11 +54,30 @@ def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == user_id).first()
+    # ✅ LOAD USER WITH ROLES + PERMISSIONS IN ONE QUERY
+    user = (
+        db.query(User)
+        .options(
+            joinedload(User.user_roles)
+            .joinedload(UserRole.role)
+            .joinedload(Role.role_permissions)
+            .joinedload(RolePermission.permission)
+        )
+        .filter(User.id == user_id)
+        .first()
+    )
+
     if not user:
         raise credentials_exception
-    
-    user.permissions = permissions
+
+    # ✅ Build permission list dynamically
+    permissions = set()
+
+    for ur in user.user_roles:
+        for rp in ur.role.role_permissions:
+            permissions.add(rp.permission.name)
+
+    user.permissions = list(permissions)
 
     return user
 

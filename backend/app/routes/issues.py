@@ -5,7 +5,7 @@ from app.models.issues import Issue
 from app.models.users import User
 from app.core.audit import log_action
 from app.core.permissions import can_update_issue
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_permission
 
 router = APIRouter(prefix="/issues", tags=["Issues"])
 
@@ -15,7 +15,7 @@ def create_issue(
     description: str,
     priority: str = "medium",
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_permission("issue:create"))
 ):
     issue = Issue(
         title=title,
@@ -35,7 +35,7 @@ def create_issue(
 @router.get("/")
 def list_issues(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_permission("issue:read"))
 ):
     return db.query(Issue).all()
 
@@ -44,7 +44,7 @@ def update_issue(
     issue_id: int,
     status: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_permission("issue:update"))
 ):
     issue = db.query(Issue).filter(Issue.id == issue_id).first()
     if not issue:
@@ -66,3 +66,10 @@ def update_issue(
     )
 
     return {"message": "Issue updated"}
+
+@router.get("/me")
+def me(current_user: User = Depends(get_current_user)):
+    return {
+        "user_id": current_user.id,
+        "permissions": current_user.permissions
+    }

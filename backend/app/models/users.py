@@ -11,6 +11,18 @@ class User(Base):
     email = Column(String(150), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
 
+    # RBAC
     user_roles = relationship("UserRole", back_populates="user")
+
+    # Issues relationships (IMPORTANT)
+    created_issues = relationship(
+        "Issue",
+        foreign_keys="Issue.created_by_id"
+    )
+
+    assigned_issues = relationship(
+        "Issue",
+        foreign_keys="Issue.assigned_to_id"
+    )
 
     created_at = Column(DateTime, default=datetime.utcnow)

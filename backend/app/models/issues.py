@@ -20,7 +20,7 @@ class Issue(Base):
     description = Column(Text, nullable=False)
 
     status = Column(String(50), default="open")
-    priority = Column(String(50), default="medium")
+    priority = Column(Enum(PriorityEnum), default=PriorityEnum.medium)
 
     created_by_id = Column(Integer, ForeignKey("users.id"))
     assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)

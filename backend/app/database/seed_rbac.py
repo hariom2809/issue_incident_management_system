@@ -1,7 +1,6 @@
 from app.database.database import SessionLocal
 from app.models.rbac import Role, Permission, RolePermission
 
-
 def seed_rbac():
     db = SessionLocal()
 
@@ -50,3 +49,6 @@ def seed_rbac():
     db.close()
 
     print("RBAC seeded successfully")
+
+if __name__ == "__main__":
+    seed_rbac()

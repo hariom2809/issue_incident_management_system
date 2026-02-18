@@ -8,6 +8,7 @@ from app.models.auth import RegisterRequest
 from app.core.permissions import get_user_permissions
 from sqlalchemy.orm import joinedload
 from app.models.rbac import UserRole, Role, RolePermission
+from app.models.rbac import UserRole, Role
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -26,7 +27,15 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    return {"message": "User created"}
+    default_role = db.query(Role).filter(Role.name == "viewer").first()
+
+    db.add(UserRole(
+        user_id=user.id,
+        role_id=default_role.id
+    ))
+    db.commit()
+
+    return {"message": "User created with viewer role"}
 
 @router.post("/login", summary="Login and get access token")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
