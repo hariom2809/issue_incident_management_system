@@ -15,7 +15,7 @@ def create_issue(
     description: str,
     priority: str = "medium",
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("issue:create"))
+    current_user: User = Depends(require_permission("create_incident"))
 ):
     issue = Issue(
         title=title,
@@ -35,7 +35,7 @@ def create_issue(
 @router.get("/")
 def list_issues(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("issue:read"))
+    current_user: User = Depends(require_permission("view_all"))
 ):
     return db.query(Issue).all()
 
@@ -44,7 +44,7 @@ def update_issue(
     issue_id: int,
     status: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("issue:update"))
+    current_user: User = Depends(require_permission("update_incident"))
 ):
     issue = db.query(Issue).filter(Issue.id == issue_id).first()
     if not issue:
@@ -66,6 +66,38 @@ def update_issue(
     )
 
     return {"message": "Issue updated"}
+
+@router.patch("/{issue_id}/assign")
+def assign_issue(
+    issue_id: int,
+    assigned_user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("assign_incident"))
+):
+    issue = db.query(Issue).filter(Issue.id == issue_id).first()
+    if not issue:
+        raise HTTPException(status_code=404, detail="Issue not found")
+
+    assigned_user = db.query(User).filter(User.id == assigned_user_id).first()
+    if not assigned_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    old_assignee = issue.assigned_to_id
+    issue.assigned_to_id = assigned_user.id
+
+    db.commit()
+
+    log_action(
+        issue.id,
+        current_user.id,
+        "issue_assigned",
+        str(old_assignee),
+        str(assigned_user.id)
+    )
+
+    return {
+        "message": f"Issue assigned to user {assigned_user.id}"
+    }
 
 @router.get("/me")
 def me(current_user: User = Depends(get_current_user)):
