@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
 from app.database.database import get_db
 from app.models.issues_comments import IssueComment
 from app.models.issues import Issue
 from app.models.users import User
-from app.core.security import require_permission
+from app.core.security import require_permission, get_current_user
 from app.core.audit import log_action
+from app.core.issue_access import get_visible_issues, can_view_issue
 
 router = APIRouter(prefix="/issues", tags=["Comments"])
 
@@ -22,12 +22,14 @@ def add_comment(
     if not issue:
         raise HTTPException(404, "Issue not found")
 
+    if not can_view_issue(current_user, issue):
+        raise HTTPException(403, "Not authorized")
+    
     new_comment = IssueComment(
         issue_id=issue_id,
         user_id=current_user.id,
         comment=comment
     )
-
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
@@ -36,13 +38,19 @@ def add_comment(
 
     return new_comment
 
-
 @router.get("/{issue_id}/comments")
 def list_comments(
     issue_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("comment_incident"))
+    current_user: User = Depends(get_current_user)
 ):
+    issue = db.query(Issue).filter(Issue.id == issue_id).first()
+    if not issue:
+        raise HTTPException(404, "Issue not found")
+
+    if not can_view_issue(current_user, issue):
+        raise HTTPException(403, "Not authorized")
+
     return (
         db.query(IssueComment)
         .filter(IssueComment.issue_id == issue_id)

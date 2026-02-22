@@ -4,9 +4,10 @@ from app.database.database import get_db
 from app.models.issues import Issue
 from app.models.users import User
 from app.core.audit import log_action
-from app.core.permissions import can_update_issue
 from app.core.security import get_current_user, require_permission
 from app.core.issue_access import get_visible_issues
+
+ALLOWED_STATUS = ["open", "in_progress", "resolved", "closed"]
 
 router = APIRouter(prefix="/issues", tags=["Issues"])
 
@@ -36,7 +37,7 @@ def create_issue(
 @router.get("/")
 def list_issues(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_permission("view_incident"))
 ):
     query = get_visible_issues(db, current_user)
     return query.all()
@@ -54,16 +55,20 @@ def update_issue(
 
     if not can_update_issue(current_user, issue):
         raise HTTPException(status_code=403, detail="Not authorized")
-    
+
+    if status not in ALLOWED_STATUS:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
     old_status = issue.status
     issue.status = status
 
     db.commit()
+
     log_action(
         issue.id,
-        issue.assigned_to_id,
+        current_user.id,
         "status_changed",
-        old_status, 
+        old_status,
         status
     )
 
@@ -84,6 +89,9 @@ def assign_issue(
     if not assigned_user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    if issue.assigned_to_id == assigned_user.id:
+        return {"message": "Issue already assigned to this user"}
+    
     old_assignee = issue.assigned_to_id
     issue.assigned_to_id = assigned_user.id
 
