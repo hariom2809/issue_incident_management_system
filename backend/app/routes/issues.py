@@ -6,6 +6,7 @@ from app.models.users import User
 from app.core.audit import log_action
 from app.core.permissions import can_update_issue
 from app.core.security import get_current_user, require_permission
+from app.core.issue_access import get_visible_issues
 
 router = APIRouter(prefix="/issues", tags=["Issues"])
 
@@ -35,9 +36,10 @@ def create_issue(
 @router.get("/")
 def list_issues(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("view_all"))
+    current_user: User = Depends(get_current_user)
 ):
-    return db.query(Issue).all()
+    query = get_visible_issues(db, current_user)
+    return query.all()
 
 @router.patch("/{issue_id}")
 def update_issue(

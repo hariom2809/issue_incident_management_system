@@ -27,15 +27,19 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    default_role = db.query(Role).filter(Role.name == "viewer").first()
+    default_role = db.query(Role).filter(Role.name == "reporter").first()
+    if not default_role:
+        raise HTTPException(500, "Default role not found. Run RBAC seed.")
 
-    db.add(UserRole(
+    user_roles = UserRole(
         user_id=user.id,
         role_id=default_role.id
-    ))
+    )
+    db.add(user_roles)
+    db.flush()
     db.commit()
 
-    return {"message": "User created with viewer role"}
+    return {"message": "User created with reporter role"}
 
 @router.post("/login", summary="Login and get access token")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
